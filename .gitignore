@@ -1,0 +1,31 @@
+# Build output
+bin/
+obj/
+artifacts/
+publish/
+
+# Editors and tools
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.rsuser
+
+# Local verification renders (--smoke-test, --widgets)
+verification/
+**/verification/
+
+# Logs
+*.log
+
+# Local data and secrets: these live in %LOCALAPPDATA%\DesktopDeck, but ignore
+# stray copies (for example from a copied data folder) so they are never committed.
+secrets.json
+settings.json
+settings.json.bak
+snapshots/
+
+# OS files
+Thumbs.db
+desktop.ini

@@ -1,0 +1,16 @@
+using DesktopDeck.Widgets;
+public static class OnlineTests
+{
+    public static void CachedDataMustMatchRequest()
+    {
+        Expect.Equal("", OnlineLogic.CacheForRequest("USD rates", "USD", "EUR"), "changed base must not relabel stale rates");
+        Expect.Equal("offline rates", OnlineLogic.CacheForRequest("offline rates", "USD", "USD"), "same request retains offline data");
+        Expect.Equal("", OnlineLogic.CacheForRequest("old location", null, "51,0"), "unidentified data is not reused");
+    }
+    public static void RssAndAtomFixtures(){var rss=NewsFeedLogic.Parse("<rss><channel><title>News</title><item><title>Story</title><link>https://example.com/a</link><description>&lt;b&gt;Hello&lt;/b&gt;</description><pubDate>Sun, 04 Oct 2026 12:00:00 GMT</pubDate></item></channel></rss>","https://example.com/feed");Expect.Equal("Hello",rss.Items[0].Summary,"RSS HTML stripped");var atom=NewsFeedLogic.Parse("<feed xmlns='http://www.w3.org/2005/Atom'><title>Atom</title><entry><title>Entry</title><link href='/a'/><updated>2026-10-04T12:00:00Z</updated></entry></feed>","https://example.com/feed");Expect.Equal("https://example.com/a",atom.Items[0].Link,"relative Atom link");Expect.Throws<FormatException>(()=>NewsFeedLogic.Parse("<!DOCTYPE rss [<!ENTITY e SYSTEM 'file:///secret'>]><rss><channel><title>&e;</title></channel></rss>","https://example.com"),"DTD prohibited");}
+    public static void RefreshBackoffAndTimestamps(){var now=DateTimeOffset.UtcNow;Expect.True(!OnlineLogic.IsStale(now,TimeSpan.FromMinutes(10),now),"fresh cache");Expect.True(OnlineLogic.IsStale(now.AddHours(-1),TimeSpan.FromMinutes(10),now),"stale cache");Expect.Equal(now,OnlineLogic.ParseStamp(OnlineLogic.FormatStamp(now))!.Value,"stamp roundtrip");Expect.True(OnlineLogic.RetryDelay(TimeSpan.FromHours(6))>=TimeSpan.FromMinutes(5),"backoff");}
+    public static void CurrencyRatesAndInverse(){var rates=CurrencyLogic.Parse("{\"rates\":{\"EUR\":0.8,\"BAD\":0,\"NEG\":-1}}");Expect.Equal(1,rates.Count,"invalid rates skipped");Expect.Near(80,CurrencyLogic.Convert(100,rates["EUR"],false),1e-9,"forward");Expect.Near(125,CurrencyLogic.Convert(100,rates["EUR"],true),1e-9,"inverse");Expect.Throws<FormatException>(()=>CurrencyLogic.Parse("{}"),"missing rates");}
+    public static void AqiBoundaryAndMissingPollutants(){Expect.Equal("Good",AirQualityLogic.Category(50,false).Text,"US boundary");Expect.Equal("Moderate",AirQualityLogic.Category(51,false).Text,"US next band");Expect.Equal("Fair",AirQualityLogic.Category(40,true).Text,"Europe boundary");var p=AirQualityLogic.Parse("{\"current\":{\"us_aqi\":20,\"pm10\":null}}");Expect.True(!p.ContainsKey("pm10"),"null pollutant skipped");}
+    public static void HistoryHolidaysWithoutYear(){var p=OnThisDayLogic.Parse("{\"holidays\":[{\"text\":\"<b>Day</b> &amp; night\",\"pages\":[]}]}","holidays");Expect.True(p[0].Year is null,"holiday has no year");Expect.Equal("Day & night",p[0].Text,"HTML cleaned");}
+    public static void UntrustedLinks(){Expect.True(!OnlineLogic.IsWebLink("file:///C:/secret"),"file link rejected");Expect.True(!OnlineLogic.IsWebLink("javascript:alert(1)"),"script rejected");Expect.True(OnlineLogic.IsWebLink("https://example.com"),"https accepted");}
+}

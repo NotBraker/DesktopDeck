@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../src/DesktopDeck/Models/*.cs" Link="Models/%(Filename)%(Extension)" />
+    <Compile Include="../../src/DesktopDeck/Services/*.cs" Link="Services/%(Filename)%(Extension)" />
+    <Compile Include="../../src/DesktopDeck/Layout/DeckLayout.cs" Link="Layout/DeckLayout.cs" />
+    <Compile Include="../../src/DesktopDeck/Layout/TemplatePlacer.cs" Link="Layout/TemplatePlacer.cs" />
+    <Compile Include="../../src/DesktopDeck/Layout/RegionMath.cs" Link="Layout/RegionMath.cs" />
+    <Compile Include="../../src/DesktopDeck/Layout/IconSpace.cs" Link="Layout/IconSpace.cs" />
+    <Compile Include="../../src/DesktopDeck/Layout/WallpaperMath.cs" Link="Layout/WallpaperMath.cs" />
+  </ItemGroup>
+</Project>

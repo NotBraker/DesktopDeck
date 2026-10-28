@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Builds DesktopDeckSetup-<version>.exe:  dotnet build installer/DesktopDeck.Installer.csproj -c Release
+    1. publishes the app self-contained (no .NET install needed on the PC) into artifacts/installer/app,
+    2. runs Inno Setup's compiler (from the Tools.InnoSetup package, so nothing has to be installed) on DesktopDeck.iss,
+    3. leaves the setup program in artifacts/installer/.
+    The version comes from DesktopDeck.csproj. A switch such as -p:PublicEdition=true is passed on to the app's publish.
+    This project has no code of its own; building it only runs the target below.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <NoWarn>$(NoWarn);CS2008</NoWarn>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <!-- Not the app's own output folders: artifacts/app is what the running deck uses and is never touched here. -->
+    <RepoRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))\</RepoRoot>
+    <AppProject>$(RepoRoot)src\DesktopDeck\DesktopDeck.csproj</AppProject>
+    <InstallerOut>$(RepoRoot)artifacts\installer\</InstallerOut>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Tools.InnoSetup" Version="6.7.1" GeneratePathProperty="true" PrivateAssets="all" />
+  </ItemGroup>
+
+  <Target Name="BuildInstaller" AfterTargets="Build">
+    <XmlPeek XmlInputPath="$(AppProject)" Query="/Project/PropertyGroup/Version/text()">
+      <Output TaskParameter="Result" PropertyName="AppVersion" />
+    </XmlPeek>
+    <Error Condition="'$(AppVersion)' == ''" Text="No Version found in $(AppProject)." />
+    <PropertyGroup>
+      <AppDir>$(InstallerOut)app</AppDir>
+      <!-- Only passed when it is set (the public copy has no such switch). -->
+      <EditionArg Condition="'$(PublicEdition)' != ''">-p:PublicEdition=$(PublicEdition)</EditionArg>
+      <IsccFlags Condition="'$(NoAppMutex)' == 'true'">/DNoAppMutex</IsccFlags>
+      <IsccExe>$(PkgTools_InnoSetup)\tools\ISCC.exe</IsccExe>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(IsccExe)')" Text="ISCC.exe was not found in the Tools.InnoSetup package ($(IsccExe))." />
+
+    <RemoveDir Directories="$(AppDir)" />
+    <Exec Command="dotnet publish &quot;$(AppProject)&quot; -c $(Configuration) -r win-x64 --self-contained true $(EditionArg) -o &quot;$(AppDir)&quot; --nologo" />
+    <Exec Command="&quot;$(IsccExe)&quot; /Qp &quot;/DAppVersion=$(AppVersion)&quot; &quot;/DSourceDir=$(AppDir)&quot; &quot;/DOutputDir=$(InstallerOut.TrimEnd('\'))&quot; $(IsccFlags) &quot;$(MSBuildThisFileDirectory)DesktopDeck.iss&quot;" />
+    <Message Importance="high" Text="Installer: $(InstallerOut)DesktopDeckSetup-$(AppVersion).exe" />
+  </Target>
+</Project>
